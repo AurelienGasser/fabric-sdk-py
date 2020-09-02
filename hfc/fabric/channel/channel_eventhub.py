@@ -32,6 +32,7 @@ from hfc.fabric.transaction.tx_proposal_request import TXProposalRequest
 from hfc.fabric.block_decoder import BlockDecoder, FilteredBlockDecoder
 
 _logger = logging.getLogger(__name__ + ".channel_eventhub")
+logger = logging.getLogger(__name__)
 
 NO_START_STOP = 0
 START_ONLY = 1
@@ -100,6 +101,7 @@ class ChannelEventHub(object):
         self._connected = connected
 
     def _create_seek_info(self, start=None, stop=None):
+        logger.error('event hub: _create_seek_info')
 
         behavior = 'BLOCK_UNTIL_READY'
 
@@ -145,6 +147,8 @@ class ChannelEventHub(object):
         return seek_info
 
     def _get_stream(self):
+        logger.error('event hub: _get_stream')
+
         """ get the events of the channel.
         Return: the events in success or None in fail.
         """
@@ -187,6 +191,8 @@ class ChannelEventHub(object):
         return self._peer.delivery(envelope, filtered=self._filtered)
 
     def check_start_stop_connect(self, start=None, stop=None):
+
+        logger.error('event hub: check_start_stop_connect')
         if start is not None or stop is not None:
             if self._start_stop_action:
                 raise Exception('Not able to connect with start/stop'
@@ -223,6 +229,7 @@ class ChannelEventHub(object):
 
     def check_start_stop_listener(self, start=None, stop=None):
 
+        logger.error('event hub: check_start_stop_listener')
         result = NO_START_STOP
 
         if self._start_stop_action:
@@ -264,6 +271,7 @@ class ChannelEventHub(object):
         return result
 
     def _processBlockEvents(self, block):
+        logger.error('event hub: _processBlockEvents')
         for reg_num in self._reg_nums:
 
             if reg_num.unregister:
@@ -278,7 +286,7 @@ class ChannelEventHub(object):
     def registerBlockEvent(self, unregister=True,
                            start=None, stop=None,
                            disconnect=False, onEvent=None):
-
+        logger.error('event hub: registerBlockEvent')
         startstop_mode = self.check_start_stop_listener(start, stop)
 
         reg_num = EventRegistration(onEvent,
@@ -295,9 +303,11 @@ class ChannelEventHub(object):
         return reg_num
 
     def unregisterBlockEvent(self, reg_num):
+        logger.error('event hub: unregisterBlockEvent')
         self._reg_nums.remove(reg_num)
 
     def handle_filtered_tx(self, block, tx_id, er):
+        logger.error('event hub: handle_filtered_tx')
         for ft in block['filtered_transactions']:
             if tx_id == ft['txid'] or tx_id == 'all':
 
@@ -310,6 +320,7 @@ class ChannelEventHub(object):
                     self.disconnect()
 
     def handle_full_tx(self, block, tx_id, er):
+        logger.error('event hub: handle_full_tx')
         for index, data in enumerate(block['data']['data']):
             channel_header = data['payload']['header']['channel_header']
             if tx_id == channel_header['tx_id'] or tx_id == 'all':
@@ -325,6 +336,7 @@ class ChannelEventHub(object):
                     self.disconnect()
 
     def _processTxEvents(self, block):
+        logger.error('event hub: _processTxEvents')
         for tx_id, er in copy(self._tx_ids).items():
             # filtered block case
             if self._filtered:
@@ -335,7 +347,7 @@ class ChannelEventHub(object):
     def registerTxEvent(self, tx_id, unregister=None,
                         start=None, stop=None,
                         disconnect=False, onEvent=None):
-
+        logger.error('event hub: registerTxEvent')
         startstop_mode = self.check_start_stop_listener(start, stop)
 
         if tx_id == 'all' and unregister is None:
@@ -357,16 +369,21 @@ class ChannelEventHub(object):
         return tx_id
 
     def unregisterTxEvent(self, tx_id):
+        logger.error('event hub: unregisterTxEvent')
         if tx_id in self._tx_ids:
             del self._tx_ids[tx_id]
 
     def _queue_chaincode_event(self, chaincode_event, block_number,
                                tx_id, tx_status, all_events):
-
+        logger.error('event hub: _queue_chaincode_event')
         for ccid in copy(self._reg_ids).keys():
+            logger.error(f'event hub: _queue_chaincode_event 1 {ccid}')
             for cr in self._reg_ids[ccid]:
+                logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr}')
                 if chaincode_event['chaincode_id'] == cr.ccid and \
                         re.match(cr.pattern, chaincode_event['event_name']):
+
+                    logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr} 1')
 
                     evt = {
                         'chaincode_event': chaincode_event,
@@ -376,6 +393,7 @@ class ChannelEventHub(object):
                     }
 
                     if ccid not in all_events:
+                        logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr} 2')
                         all_events[ccid] = [{
                             cr.uuid: {
                                 'cr': cr,
@@ -383,12 +401,16 @@ class ChannelEventHub(object):
                             }
                         }]
                     else:
+                        logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr} 3')
                         for x in all_events[ccid]:
+                            logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr} 4')
                             _uuid = next(iter(x.keys()))
                             if _uuid == cr.uuid:
+                                logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr} 5')
                                 x[_uuid]['evts'] += [evt]
                                 break
                         else:
+                            logger.error(f'event hub: _queue_chaincode_event 1 {ccid} {cr} 6')
                             all_events[ccid].append({
                                 cr.uuid: {
                                     'cr': cr,
@@ -397,10 +419,15 @@ class ChannelEventHub(object):
                             })
 
     def handle_filtered_chaincode(self, block, all_events):
+
+        logger.error('event hub: handle_filtered_chaincode')
         for ft in block['filtered_transactions']:
+            logger.error(f'event hub: handle_filtered_chaincode {ft}')
             if 'transaction_actions' in ft:
+                logger.error(f'event hub: handle_filtered_chaincode 1')
                 tx_actions = ft['transaction_actions']
                 for chaincode_action in tx_actions['chaincode_actions']:
+                    logger.error(f'event hub: handle_filtered_chaincode 1 {chaincode_action}')
                     chaincode_event = chaincode_action['chaincode_event']
                     # need to remove the payload since with filtered blocks it
                     # has an empty byte array value which is not the real value
@@ -414,8 +441,11 @@ class ChannelEventHub(object):
 
     def _handle_full_chaincode(self, tx, block_number, tx_id,
                                tx_status, all_events):
+        logger.error('event hub: _handle_full_chaincode')
         if 'actions' in tx:
+            logger.error('event hub: _handle_full_chaincode 1')
             for t in tx['actions']:
+                logger.error(f'event hub: _handle_full_chaincode 1 {t}')
                 ppl_r_p = t['payload']['action']['proposal_response_payload']
                 chaincode_event = ppl_r_p['extension']['events']
                 self._queue_chaincode_event(chaincode_event,
@@ -425,13 +455,17 @@ class ChannelEventHub(object):
                                             all_events)
 
     def handle_full_chaincode(self, block, all_events):
+        logger.error('event hub: handle_full_chaincode')
         if 'data' in block:
+            logger.error('event hub: handle_full_chaincode 1')
             for index, data in enumerate(block['data']['data']):
+                logger.error(f'event hub: handle_full_chaincode {index}')
                 payload = data['payload']
                 channel_header = payload['header']['channel_header']
 
                 # only ENDORSER_TRANSACTION have chaincode events
                 if channel_header['type'] == 3:
+                    logger.error(f'event hub: handle_full_chaincode {index} 1')
                     tx = payload['data']
                     txFilter = BlockMetadataIndex.Value('TRANSACTIONS_FILTER')
                     txStatusCodes = block['metadata']['metadata'][txFilter]
@@ -444,7 +478,10 @@ class ChannelEventHub(object):
                                                 all_events)
 
     def _processChaincodeEvents(self, block):
+
+        logger.error('event hub: _processChaincodeEvents')
         if len(self._reg_ids.keys()):
+            logger.error('event hub: _processChaincodeEvents 1')
             all_events = {}
             if self._filtered:
                 self.handle_filtered_chaincode(block, all_events)
@@ -452,22 +489,31 @@ class ChannelEventHub(object):
                 self.handle_full_chaincode(block, all_events)
 
             for events in all_events.values():
+                logger.error('event hub: _processChaincodeEvents 2')
                 for e in events:
+                    logger.error('event hub: _processChaincodeEvents 3')
                     for x in e.values():
+                        logger.error('event hub: _processChaincodeEvents 4')
                         if x['cr'].er.onEvent is not None:
+                            logger.error('event hub: _processChaincodeEvents 5')
                             if x['cr'].as_array:
+                                logger.error('event hub: _processChaincodeEvents 6')
                                 x['cr'].er.onEvent(x['evts'])
                             else:
+                                logger.error('event hub: _processChaincodeEvents 7')
                                 for e in x['evts']:
+                                    logger.error('event hub: _processChaincodeEvents 8')
                                     x['cr'].er.onEvent(e['chaincode_event'],
                                                        e['block_num'],
                                                        e['tx_id'],
                                                        e['tx_status'])
 
                         if x['cr'].er.unregister:
+                            logger.error('event hub: _processChaincodeEvents 9')
                             self.unregisterChaincodeEvent(x['cr'])
 
                         if x['cr'].er.disconnect:
+                            logger.error('event hub: _processChaincodeEvents 10')
                             self.disconnect()
 
     def registerChaincodeEvent(self, ccid, pattern, unregister=False,
@@ -475,6 +521,7 @@ class ChannelEventHub(object):
                                as_array=None,
                                disconnect=False, onEvent=None):
 
+        logger.error('event hub: registerChaincodeEvent')
         startstop_mode = self.check_start_stop_listener(start, stop)
 
         if as_array is None:
@@ -497,19 +544,21 @@ class ChannelEventHub(object):
         return cr
 
     def unregisterChaincodeEvent(self, cr):
+        logger.error('event hub: unregisterChaincodeEvent')
         self._reg_ids[cr.ccid].remove(cr)
 
         if not self._reg_ids[cr.ccid]:
             del self._reg_ids[cr.ccid]
 
     def have_registrations(self):
+        logger.error('event hub: have_registrations')
         return self._reg_nums != [] \
                or self._tx_ids != {} \
                or self._reg_ids != {}
 
     def _on_end_actions(self, event_reg, unregister_action, startstop_mode,
                         unregister, disconnect):
-
+        logger.error('event hub: _on_end_actions')
         if startstop_mode > 0:
             self._start_stop_action = {
                 'event_reg': event_reg,
@@ -517,21 +566,27 @@ class ChannelEventHub(object):
                 'disconnect': False
             }
 
+            logger.error(f'event hub: _on_end_actions')
             _end_register = True
             if unregister is not None:
+                logger.error(f'event hub: _on_end_actions 1')
                 _end_register = unregister
 
             if _end_register and startstop_mode > 1:
+                logger.error(f'event hub: _on_end_actions 2')
                 self._start_stop_action['unregister'] = unregister_action
 
             _end_disconnect = True
             if disconnect is not None:
+                logger.error(f'event hub: _on_end_actions 3')
                 _end_disconnect = disconnect
 
             if _end_disconnect and startstop_mode > 1:
+                logger.error(f'event hub: _on_end_actions 4')
                 self._start_stop_action['disconnect'] = True
 
     def check_replay_end(self):
+        logger.error('event hub: check_replay_end')
         if self._stop is not None:
             if isinstance(self._stop, int) and self._stop <= self._last_seen:
                 self._ending_block_seen = True
@@ -542,15 +597,19 @@ class ChannelEventHub(object):
                         self.disconnect()
 
     async def handle_stream(self, stream):
+        logger.error('event hub: handle_stream')
         async for event in stream:
             if event.WhichOneof('Type') in ('block', 'filtered_block'):
+                logger.error('event hub: handle_stream 1')
                 self.connected = True
 
                 if event.WhichOneof('Type') == 'block':
+                    logger.error('event hub: handle_stream 2')
                     block = BlockDecoder().decode(
                         event.block.SerializeToString())
                     self._last_seen = block['header']['number']
                 else:
+                    logger.error('event hub: handle_stream 3')
                     block = FilteredBlockDecoder().decode(
                         event.filtered_block.SerializeToString())
                     self._last_seen = block['number']
@@ -562,22 +621,29 @@ class ChannelEventHub(object):
                 self.check_replay_end()
 
             elif event.WhichOneof('Type') == 'status':
+                logger.error('event hub: handle_stream 4')
                 if event.status == Status.Value('SUCCESS'):  # last block
+                    logger.error('event hub: handle_stream 5')
                     if self._ending_block_seen:
+                        logger.error('event hub: handle_stream 6')
                         _logger.debug(f'status received after last block '
                                       f'seen: {event.status}, block-num:'
                                       f' {self._last_seen}')
                     if self._ending_block_newest:
+                        logger.error('event hub: handle_stream 7')
                         self.disconnect()
                 else:
+                    logger.error('event hub: handle_stream 8')
                     self.disconnect()
             else:
+                logger.error('event hub: handle_stream 9')
                 _logger.error(f'ChannelEventHub has received a unknown'
                               f' message type {event.WhichOneof("Type")}')
 
     def connect(self, filtered=True, start=None, stop=None,
                 as_array=False,
                 target=None, signed_event=None):
+        logger.error('event hub: connect')
         self._filtered = filtered
         self._as_array = as_array
 
@@ -594,6 +660,7 @@ class ChannelEventHub(object):
         return self.handle_stream(self.stream)
 
     def disconnect(self):
+        logger.error('event hub: disconnect')
         self.stream.cancel()
         self._start = None
         self._stop = None
