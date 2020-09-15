@@ -9,7 +9,6 @@ import os
 import subprocess
 import shutil
 import uuid
-import traceback
 from _sha256 import sha256
 
 from time import sleep
