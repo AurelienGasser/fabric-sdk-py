@@ -653,7 +653,7 @@ class ChannelEventHub(object):
 
             try:
                 s = stream._iterator
-                mylog(f'handle_stream state.code={s._state.code} cancelled={s.cancelled()} running={s.running()} done={s.done()} is_active={s.is_active()} _is_complete={s._is_complete()} time_remaining={s.time_remaining()}')
+                mylog(f'handle_stream state.code={s._state.code} details={s._state.details} cancelled={s.cancelled()} running={s.running()} done={s.done()} is_active={s.is_active()} _is_complete={s._is_complete()} time_remaining={s.time_remaining()}')
             except Exception as e:
                 mylog(f'Cannot get stream status: {e}')
 
