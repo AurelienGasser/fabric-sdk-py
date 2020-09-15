@@ -46,6 +46,12 @@ _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.DEBUG)
 _logger.addHandler(consoleHandler)
 
+_logger2 = logging.getLogger(__name__ + ".channel_eventhub")
+
+
+def mylog(message):
+    _logger2.error(f'event hub: {message}')
+
 
 class Client(object):
     """
@@ -1357,7 +1363,7 @@ class Client(object):
                                                                requestor)
                 stream = channel_event_hub.connect()
                 event_stream.append(stream)
-
+                mylog('registerTxEvent instantiate')
                 txid = channel_event_hub.registerTxEvent(
                     self.evt_tx_id,
                     unregister=True,
@@ -1514,7 +1520,7 @@ class Client(object):
                                                                requestor)
                 stream = channel_event_hub.connect()
                 event_stream.append(stream)
-
+                mylog('registerTxEvent upgrade')
                 txid = channel_event_hub.registerTxEvent(
                     self.evt_tx_id,
                     unregister=True,
@@ -1750,6 +1756,8 @@ class Client(object):
                     ]
                 # use transaction event
                 else:
+                    mylog('registerTxEvent invoke')
+                    _logger2.exception(Exception('hee2'), exc_info=True)
                     txid = channel_event_hub.registerTxEvent(
                         self.evt_tx_id,
                         unregister=True,
