@@ -9,6 +9,7 @@ import os
 import subprocess
 import shutil
 import uuid
+import traceback
 from _sha256 import sha256
 
 from time import sleep
@@ -1757,7 +1758,8 @@ class Client(object):
                 # use transaction event
                 else:
                     mylog('registerTxEvent invoke')
-                    _logger2.exception(Exception('hee2'), exc_info=True)
+                    for line in traceback.format_stack():
+                        mylog(line.strip())
                     txid = channel_event_hub.registerTxEvent(
                         self.evt_tx_id,
                         unregister=True,
