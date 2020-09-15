@@ -1757,9 +1757,7 @@ class Client(object):
                     ]
                 # use transaction event
                 else:
-                    mylog('registerTxEvent invoke')
-                    for line in traceback.format_stack():
-                        mylog(line.strip())
+                    mylog(f'registerTxEvent invoke {fcn}')
                     txid = channel_event_hub.registerTxEvent(
                         self.evt_tx_id,
                         unregister=True,
