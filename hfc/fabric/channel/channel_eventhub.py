@@ -651,7 +651,10 @@ class ChannelEventHub(object):
                 _logger.error(f'ChannelEventHub has received a unknown'
                               f' message type {event.WhichOneof("Type")}')
 
-            mylog(f'handle_stream state.code={stream._state.code} cancelled={stream.cancelled} running={stream.running} done={stream.done} is_complete={stream.is_complete} exception={stream.exception}')
+            try:
+                mylog(f'handle_stream state.code={stream._state.code} cancelled={stream.cancelled} running={stream.running} done={stream.done} is_complete={stream.is_complete} exception={stream.exception}')
+            except Exception as e:
+                mylog(f'Cannot get stream status: {e}')
 
     def connect(self, filtered=True, start=None, stop=None,
                 as_array=False,
