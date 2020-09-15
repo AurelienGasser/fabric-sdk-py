@@ -43,7 +43,7 @@ START_AND_END = 3
 
 
 def mylog(message):
-    mylog(f'{message}')
+    logger.error(f'event hub: {message}')
 
 class EventRegistration(object):
     """A class represents event registration."""
